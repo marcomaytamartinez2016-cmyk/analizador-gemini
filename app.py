@@ -23,7 +23,7 @@ if archivo_subido is not None:
     if st.button("Analizar Estado de Ánimo"):
         with st.spinner("Gemini está analizando la imagen..."):
             try:
-                # Llamada a la API utilizando el modelo actualizado
+                # Llamada a la API usando el modelo actualizado
                 respuesta = client.models.generate_content(
                     model="gemini-2.5-flash",
                     contents=[
