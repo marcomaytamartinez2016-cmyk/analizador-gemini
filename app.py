@@ -16,53 +16,51 @@ client = genai.Client(api_key=API_KEY)
 
 # Opciones de personalización del pincel en la barra lateral
 st.sidebar.header("Opciones de Dibujo")
-stroke_width = st.sidebar.slider("Grosor del pincel: ", 1, 25, 3)
+stroke_width = st.sidebar.slider("Grosor del pincel: ", 1, 25, 4)
 stroke_color = st.sidebar.color_picker("Color del pincel: ", "#000000")
 bg_color = st.sidebar.color_picker("Color de fondo: ", "#ffffff")
 
 st.subheader("Lienzo Interactivo:")
 # Crear el lienzo interactivo
 canvas_result = st_canvas(
-    fill_color="rgba(255, 165, 0, 0.3)",  # Color de relleno predeterminado
+    fill_color="rgba(255, 165, 0, 0.3)",
     stroke_width=stroke_width,
     stroke_color=stroke_color,
     background_color=bg_color,
     height=400,
     width=600,
     drawing_mode="freedraw",
-    key="canvas",
+    key="canvas_app",
 )
 
 # Botón para iniciar el análisis
 if st.button("Analizar Dibujo"):
-    if canvas_result.image_data is not None:
-        # Convertir los datos de la imagen del lienzo a formato PIL
-        img_array = canvas_result.image_data.astype(np.uint8)
-        imagen = Image.fromarray(img_array)
-        
-        # Verificar si el usuario ha dibujado algo
-        if np.all(img_array[:, :, :3] == 255) or np.all(img_array[:, :, 3] == 0):
-            st.warning("Por favor, realiza un dibujo antes de presionar el botón.")
-        else:
+    if canvas_result is not None and canvas_result.image_data is not None:
+        try:
+            # Obtener matriz de imagen de forma segura
+            img_data = canvas_result.image_data
+            
+            # Convertir a formato PIL Image (RGBA -> RGB)
+            imagen_pil = Image.fromarray(img_data.astype('uint8')).convert('RGB')
+            
             with st.spinner("Gemini está analizando tu trazo y composición..."):
-                try:
-                    prompt_analisis = (
-                        "Actúa como un experto en psicología del arte y expresión gráfica. "
-                        "Analiza el dibujo creado por el usuario en este lienzo digital e interpreta: "
-                        "1. Estado emocional sugerido por la composición, trazos e intensidad. "
-                        "2. Significado del uso de los colores, formas y distribución del espacio. "
-                        "3. Una conclusión reflexiva y empática sobre lo que expresa el usuario."
-                    )
-                    
-                    # Llamada a la API de Gemini
-                    respuesta = client.models.generate_content(
-                        model="gemini-2.5-flash",
-                        contents=[prompt_analisis, imagen]
-                    )
-                    st.success("¡Análisis completado!")
-                    st.subheader("Resultado de la Interpretación:")
-                    st.write(respuesta.text)
-                except Exception as e:
-                    st.error(f"Error al analizar el lienzo: {e}")
+                prompt_analisis = (
+                    "Actúa como un experto en psicología del arte y expresión gráfica. "
+                    "Analiza el dibujo creado por el usuario en este lienzo digital e interpreta: "
+                    "1. Estado emocional sugerido por la composición, trazos e intensidad. "
+                    "2. Significado del uso de los colores, formas y distribución del espacio. "
+                    "3. Una conclusión reflexiva y empática sobre lo que expresa el usuario."
+                )
+                
+                # Llamada a la API de Gemini
+                respuesta = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=[prompt_analisis, imagen_pil]
+                )
+                st.success("¡Análisis completado!")
+                st.subheader("Resultado de la Interpretación:")
+                st.write(respuesta.text)
+        except Exception as e:
+            st.error(f"Ocurrió un error al procesar el dibujo: {e}")
     else:
-        st.warning("Por favor, dibuja algo en el lienzo.")
+        st.warning("Por favor, realiza un dibujo en el lienzo antes de presionar el botón.")
