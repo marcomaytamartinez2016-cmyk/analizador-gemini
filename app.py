@@ -18,7 +18,7 @@ archivo_subido = st.file_uploader("Elige una foto...", type=["jpg", "jpeg", "png
 if archivo_subido is not None:
     # Mostrar la imagen subida por el usuario
     imagen = Image.open(archivo_subido)
-    st.image(imagen, caption="Imagen cargada", use_column_width=True)
+    st.image(imagen, caption="Imagen cargada", use_container_width=True)
     
     if st.button("Analizar Estado de Ánimo"):
         with st.spinner("Gemini está analizando la imagen..."):
