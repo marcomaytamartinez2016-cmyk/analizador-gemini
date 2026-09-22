@@ -101,9 +101,10 @@ if st.button("🔍 Analizar y Recomendar Vehículo Ideal"):
             4. **Pros y Contras de la Categoría Seleccionada:** Para que el usuario tome una decisión informada.
             """
 
+            # Llamada con la versión de modelo estable para cuentas gratuitas
             respuesta = client.models.generate_content(
                 model="gemini-2.5-flash",
-                contents=[prompt]
+                contents=prompt
             )
 
             st.success("¡Análisis completado!")
