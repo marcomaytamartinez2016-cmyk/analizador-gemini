@@ -1,5 +1,5 @@
 import streamlit as st
-import google.genai as genai
+import requests
 
 # Configuración de la página web
 st.set_page_config(page_title="Asesor Inteligente de Vehículos", page_icon="🚗", layout="wide")
@@ -7,13 +7,12 @@ st.set_page_config(page_title="Asesor Inteligente de Vehículos", page_icon="�
 st.title("🚗 Asesor Inteligente de Vehículos")
 st.write("Responde al cuestionario para recibir una recomendación personalizada del vehículo ideal para ti (SUV, Sedán o Pickup).")
 
-# Nueva clave de API de Gemini configurada
-API_KEY = "AQ.Ab8RN6JbCiZBMy6nN7EdrU5OlgNzTbNJjEqnW3BF6lAnup-gdw"
-
-try:
-    client = genai.Client(api_key=API_KEY)
-except Exception as err_init:
-    st.error(f"Error al inicializar el cliente de Gemini: {err_init}")
+# Obtener la API Key desde los Secrets de Streamlit
+if "GEMINI_API_KEY" in st.secrets:
+    API_KEY = st.secrets["GEMINI_API_KEY"]
+else:
+    # Valor de respaldo por si no se han configurado los Secrets
+    API_KEY = "AQ.Ab8RN6J2V4zNvQVCoZdsPCUg5_2AYYwqqvo_gGgQB1lFilJVcQ"
 
 st.subheader("📋 Cuestionario de Necesidades")
 
@@ -81,7 +80,7 @@ comentarios_extra = st.text_area("¿Algún otro detalle o marca de tu preferenci
 
 # Botón para procesar la recomendación
 if st.button("🔍 Analizar y Recomendar Vehículo Ideal"):
-    with st.spinner("Gemini está evaluando tu perfil y seleccionando las mejores opciones..."):
+    with st.spinner("Evaluando tu perfil con la API de Gemini..."):
         prompt = f"""
         Actúa como un experto consultor automotriz. Analiza las siguientes necesidades de un comprador y genera un informe detallado con la recomendación ideal.
 
@@ -104,13 +103,29 @@ if st.button("🔍 Analizar y Recomendar Vehículo Ideal"):
         4. **Pros y Contras de la Categoría Seleccionada:** Para que el usuario tome una decisión informada.
         """
 
+        # Endpoint de la API REST oficial con gemini-2.5-flash
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={API_KEY}"
+        headers = {"Content-Type": "application/json"}
+        payload = {
+            "contents": [
+                {
+                    "parts": [{"text": prompt}]
+                }
+            ]
+        }
+
         try:
-            respuesta = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt
-            )
-            st.success("¡Análisis completado!")
-            st.markdown("---")
-            st.write(respuesta.text)
+            response = requests.post(url, json=payload, headers=headers)
+            res_json = response.json()
+
+            if response.status_code == 200:
+                texto_respuesta = res_json['candidates'][0]['content']['parts'][0]['text']
+                st.success("¡Análisis completado!")
+                st.markdown("---")
+                st.write(texto_respuesta)
+            else:
+                msg_err = res_json.get('error', {}).get('message', 'Error desconocido')
+                st.error(f"Error {response.status_code}: {msg_err}")
+
         except Exception as e:
-            st.error(f"Error al conectar con la API de Gemini: {e}")
+            st.error(f"Error de conexión: {e}")
