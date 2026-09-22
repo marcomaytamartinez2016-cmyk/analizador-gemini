@@ -7,9 +7,13 @@ st.set_page_config(page_title="Asesor Inteligente de Vehículos", page_icon="�
 st.title("🚗 Asesor Inteligente de Vehículos")
 st.write("Responde al cuestionario para recibir una recomendación personalizada del vehículo ideal para ti (SUV, Sedán o Pickup).")
 
-# Clave de API de Gemini
-API_KEY = "AQ.Ab8RN6JsTnQjteHz2oFWOMqTSYTCTrfiuVCddI4e5Kgz2YU8Gw"
-client = genai.Client(api_key=API_KEY)
+# Nueva clave de API de Gemini configurada
+API_KEY = "AQ.Ab8RN6JbCiZBMy6nN7EdrU5OlgNzTbNJjEqnW3BF6lAnup-gdw"
+
+try:
+    client = genai.Client(api_key=API_KEY)
+except Exception as err_init:
+    st.error(f"Error al inicializar el cliente de Gemini: {err_init}")
 
 st.subheader("📋 Cuestionario de Necesidades")
 
@@ -100,23 +104,13 @@ if st.button("🔍 Analizar y Recomendar Vehículo Ideal"):
         4. **Pros y Contras de la Categoría Seleccionada:** Para que el usuario tome una decisión informada.
         """
 
-        # Intento con el modelo solicitado gemini-2.5-flash y fallback de seguridad
-        modelos_a_probar = ["gemini-2.5-flash", "gemini-2.5-flash"]
-        exito = False
-
-        for mod in modelos_a_probar:
-            try:
-                respuesta = client.models.generate_content(
-                    model=mod,
-                    contents=prompt
-                )
-                st.success("¡Análisis completado!")
-                st.markdown("---")
-                st.write(respuesta.text)
-                exito = True
-                break
-            except Exception as e:
-                continue
-
-        if not exito:
-            st.error("No se pudo conectar con el modelo de Gemini. Verifica la clave API en Google AI Studio.")
+        try:
+            respuesta = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt
+            )
+            st.success("¡Análisis completado!")
+            st.markdown("---")
+            st.write(respuesta.text)
+        except Exception as e:
+            st.error(f"Error al conectar con la API de Gemini: {e}")
