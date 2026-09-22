@@ -1,66 +1,87 @@
 import streamlit as st
 import google.genai as genai
 from PIL import Image
-import numpy as np
-from streamlit_drawable_canvas import st_canvas
+import io
+import base64
 
 # Configuración de la página web
 st.set_page_config(page_title="Pizarra de Análisis Emocional", page_icon="🎨")
 
 st.title("🎨 Dibuja y Analiza tu Estado de Ánimo")
-st.write("Dibuja lo que sientas en el lienzo de abajo (un paisaje, una persona, garabatos, etc.) para analizar tu estado emocional.")
+st.write("Dibuja lo que sientas en la pizarra de abajo para analizar tu estado emocional con Gemini.")
 
 # Clave de API de Gemini
 API_KEY = "AQ.Ab8RN6I3GEsmdsUe9QI8VfTJ-yt5nC3W6gleWNLw5v8AdDq5oQ"
 client = genai.Client(api_key=API_KEY)
 
-# Opciones de personalización del pincel en la barra lateral
-st.sidebar.header("Opciones de Dibujo")
-stroke_width = st.sidebar.slider("Grosor del pincel: ", 1, 25, 4)
-stroke_color = st.sidebar.color_picker("Color del pincel: ", "#000000")
-bg_color = st.sidebar.color_picker("Color de fondo: ", "#ffffff")
+# Componente HTML para lienzo interactivo de dibujo
+canvas_html = """
+<div style="text-align: center;">
+    <canvas id="canvas" width="500" height="350" style="border:2px solid #333; background-color:#ffffff; cursor:crosshair; border-radius:8px;"></canvas>
+    <br><br>
+    <button onclick="clearCanvas()" style="padding:8px 16px; background-color:#f44336; color:white; border:none; border-radius:4px; cursor:pointer;">Limpiar Lienzo</button>
+</div>
 
-st.subheader("Lienzo Interactivo:")
-# Crear el lienzo interactivo
-canvas_result = st_canvas(
-    fill_color="rgba(255, 165, 0, 0.3)",
-    stroke_width=stroke_width,
-    stroke_color=stroke_color,
-    background_color=bg_color,
-    height=400,
-    width=600,
-    drawing_mode="freedraw",
-    key="canvas_app",
-)
+<script>
+    var canvas = document.getElementById('canvas');
+    var ctx = canvas.getContext('2d');
+    var drawing = false;
 
-# Botón para iniciar el análisis
-if st.button("Analizar Dibujo"):
-    if canvas_result is not None and canvas_result.image_data is not None:
-        try:
-            # Obtener matriz de imagen de forma segura
-            img_data = canvas_result.image_data
-            
-            # Convertir a formato PIL Image (RGBA -> RGB)
-            imagen_pil = Image.fromarray(img_data.astype('uint8')).convert('RGB')
-            
-            with st.spinner("Gemini está analizando tu trazo y composición..."):
+    canvas.addEventListener('mousedown', function(e) { drawing = true; draw(e); });
+    canvas.addEventListener('mouseup', function() { drawing = false; ctx.beginPath(); });
+    canvas.addEventListener('mousemove', draw);
+
+    // Soporte para pantallas táctiles
+    canvas.addEventListener('touchstart', function(e) { drawing = true; draw(e.touches[0]); e.preventDefault(); });
+    canvas.addEventListener('touchend', function() { drawing = false; ctx.beginPath(); });
+    canvas.addEventListener('touchmove', function(e) { draw(e.touches[0]); e.preventDefault(); });
+
+    function draw(e) {
+        if (!drawing) return;
+        var rect = canvas.getBoundingClientRect();
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#000000';
+
+        ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    }
+
+    function clearCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+</script>
+"""
+
+st.components.v1.html(canvas_html, height=430)
+
+st.info("💡 Una vez que hagas tu dibujo en la pizarra, toma una captura de pantalla o dibújalo y sube la imagen abajo para el análisis:")
+
+archivo_subido = st.file_uploader("O sube directamente el dibujo/captura:", type=["jpg", "jpeg", "png"])
+
+if archivo_subido is not None:
+    imagen = Image.open(archivo_subido)
+    st.image(imagen, caption="Dibujo a analizar", use_container_width=True)
+    
+    if st.button("Analizar Estado de Ánimo del Dibujo"):
+        with st.spinner("Gemini está analizando los trazos..."):
+            try:
                 prompt_analisis = (
                     "Actúa como un experto en psicología del arte y expresión gráfica. "
-                    "Analiza el dibujo creado por el usuario en este lienzo digital e interpreta: "
-                    "1. Estado emocional sugerido por la composición, trazos e intensidad. "
-                    "2. Significado del uso de los colores, formas y distribución del espacio. "
+                    "Analiza el dibujo creado por el usuario e interpreta: "
+                    "1. Estado emocional sugerido por los trazos, formas y composición. "
+                    "2. Significado del uso del espacio y figuras. "
                     "3. Una conclusión reflexiva y empática sobre lo que expresa el usuario."
                 )
                 
-                # Llamada a la API de Gemini
                 respuesta = client.models.generate_content(
                     model="gemini-2.5-flash",
-                    contents=[prompt_analisis, imagen_pil]
+                    contents=[prompt_analisis, imagen]
                 )
                 st.success("¡Análisis completado!")
                 st.subheader("Resultado de la Interpretación:")
                 st.write(respuesta.text)
-        except Exception as e:
-            st.error(f"Ocurrió un error al procesar el dibujo: {e}")
-    else:
-        st.warning("Por favor, realiza un dibujo en el lienzo antes de presionar el botón.")
+            except Exception as e:
+                st.error(f"Error al analizar el dibujo: {e}")
