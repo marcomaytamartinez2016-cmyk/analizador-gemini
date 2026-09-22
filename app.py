@@ -1,8 +1,6 @@
 import streamlit as st
 import google.genai as genai
 from PIL import Image
-import io
-import base64
 
 # Configuración de la página web
 st.set_page_config(page_title="Pizarra de Análisis Emocional", page_icon="🎨")
@@ -10,8 +8,8 @@ st.set_page_config(page_title="Pizarra de Análisis Emocional", page_icon="🎨"
 st.title("🎨 Dibuja y Analiza tu Estado de Ánimo")
 st.write("Dibuja lo que sientas en la pizarra de abajo para analizar tu estado emocional con Gemini.")
 
-# Clave de API de Gemini
-API_KEY = "AQ.Ab8RN6I3GEsmdsUe9QI8VfTJ-yt5nC3W6gleWNLw5v8AdDq5oQ"
+# Clave de API de Gemini actualizada
+API_KEY = "AQ.Ab8RN6JsTnQjteHz2oFWOMqTSYTCTrfiuVCddI4e5Kgz2YU8Gw"
 client = genai.Client(api_key=API_KEY)
 
 # Componente HTML para lienzo interactivo de dibujo
@@ -57,9 +55,9 @@ canvas_html = """
 
 st.components.v1.html(canvas_html, height=430)
 
-st.info("💡 Una vez que hagas tu dibujo en la pizarra, toma una captura de pantalla o dibújalo y sube la imagen abajo para el análisis:")
+st.info("💡 Haz tu dibujo en la pizarra de arriba, toma una captura de pantalla (o foto) y súbela abajo:")
 
-archivo_subido = st.file_uploader("O sube directamente el dibujo/captura:", type=["jpg", "jpeg", "png"])
+archivo_subido = st.file_uploader("Sube el dibujo para analizar:", type=["jpg", "jpeg", "png"])
 
 if archivo_subido is not None:
     imagen = Image.open(archivo_subido)
@@ -84,4 +82,5 @@ if archivo_subido is not None:
                 st.subheader("Resultado de la Interpretación:")
                 st.write(respuesta.text)
             except Exception as e:
+                st.error(f"Error al analizar el dibujo: {e}")
                 st.error(f"Error al analizar el dibujo: {e}")
