@@ -78,38 +78,45 @@ comentarios_extra = st.text_area("¿Algún otro detalle o marca de tu preferenci
 # Botón para procesar la recomendación
 if st.button("🔍 Analizar y Recomendar Vehículo Ideal"):
     with st.spinner("Gemini está evaluando tu perfil y seleccionando las mejores opciones..."):
-        try:
-            prompt = f"""
-            Actúa como un experto consultor automotriz. Analiza las siguientes necesidades de un comprador y genera un informe detallado con la recomendación ideal.
+        prompt = f"""
+        Actúa como un experto consultor automotriz. Analiza las siguientes necesidades de un comprador y genera un informe detallado con la recomendación ideal.
 
-            **Perfil del Cliente:**
-            - **Uso principal:** {uso_principal}
-            - **Pasajeros:** {pasajeros}
-            - **Preferencias de Confort:** {', '.join(prioridad_confort) if prioridad_confort else 'No especificó'}
-            - **Capacidad de carga:** {necesidad_carga}
-            - **Terreno habitual:** {terreno}
-            - **Prioridades indispensables:** {', '.join(prioridad_general) if prioridad_general else 'No especificó'}
-            - **Presupuesto:** {presupuesto if presupuesto else 'No especificado'}
-            - **Comentarios adicionales:** {comentarios_extra if comentarios_extra else 'Ninguno'}
+        **Perfil del Cliente:**
+        - **Uso principal:** {uso_principal}
+        - **Pasajeros:** {pasajeros}
+        - **Preferencias de Confort:** {', '.join(prioridad_confort) if prioridad_confort else 'No especificó'}
+        - **Capacidad de carga:** {necesidad_carga}
+        - **Terreno habitual:** {terreno}
+        - **Prioridades indispensables:** {', '.join(prioridad_general) if prioridad_general else 'No especificó'}
+        - **Presupuesto:** {presupuesto if presupuesto else 'No especificado'}
+        - **Comentarios adicionales:** {comentarios_extra if comentarios_extra else 'Ninguno'}
 
-            **Estructura de la Respuesta:**
-            1. **Categoría Recomendada:** Determina con claridad si le conviene un SEDÁN, un SUV o una PICKUP (o un crossover) y explica brevemente POR QUÉ.
-            2. **Modelos Específicos Recomendados (Dar al menos 3 opciones principales de distintas marcas):**
-               - Menciona Marca y Modelo.
-               - Puntos fuertes según su perfil (destacando el confort, espacio o tracción según eligió).
-            3. **Análisis de Confort y Desempeño:** Cómo cada opción satisface sus preferencias de confort y terreno.
-            4. **Pros y Contras de la Categoría Seleccionada:** Para que el usuario tome una decisión informada.
-            """
+        **Estructura de la Respuesta:**
+        1. **Categoría Recomendada:** Determina con claridad si le conviene un SEDÁN, un SUV o una PICKUP (o un crossover) y explica brevemente POR QUÉ.
+        2. **Modelos Específicos Recomendados (Dar al menos 3 opciones principales de distintas marcas):**
+           - Menciona Marca y Modelo.
+           - Puntos fuertes según su perfil (destacando el confort, espacio o tracción según eligió).
+        3. **Análisis de Confort y Desempeño:** Cómo cada opción satisface sus preferencias de confort y terreno.
+        4. **Pros y Contras de la Categoría Seleccionada:** Para que el usuario tome una decisión informada.
+        """
 
-            # Llamada con la versión de modelo estable para cuentas gratuitas
-            respuesta = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt
-            )
+        # Intento con el modelo solicitado gemini-2.5-flash y fallback de seguridad
+        modelos_a_probar = ["gemini-2.5-flash", "gemini-2.5-flash"]
+        exito = False
 
-            st.success("¡Análisis completado!")
-            st.markdown("---")
-            st.write(respuesta.text)
+        for mod in modelos_a_probar:
+            try:
+                respuesta = client.models.generate_content(
+                    model=mod,
+                    contents=prompt
+                )
+                st.success("¡Análisis completado!")
+                st.markdown("---")
+                st.write(respuesta.text)
+                exito = True
+                break
+            except Exception as e:
+                continue
 
-        except Exception as e:
-            st.error(f"Error al procesar la solicitud: {e}")
+        if not exito:
+            st.error("No se pudo conectar con el modelo de Gemini. Verifica la clave API en Google AI Studio.")
